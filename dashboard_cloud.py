@@ -1,24 +1,36 @@
-import streamlit as st
-from pathlib import Path
-import time
-import json
+import base64
 from pathlib import Path
 from datetime import datetime, timedelta
+import time
+import json
 
 import requests
 import pandas as pd
 import streamlit as st
 import altair as alt
 
-# --- Ajouter l’icône iPhone (apple-touch-icon) ---
+# --- Ajouter l’icône iPhone + favicon (apple-touch-icon) ---
 icon_path = Path("apple-touch-icon.png")
+page_icon = None
+
 if icon_path.exists():
+    with icon_path.open("rb") as f:
+        b64_icon = base64.b64encode(f.read()).decode("utf-8")
+
+    # Icône pour iPhone (écran d’accueil)
     st.markdown(
         f"""
-        <link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,{icon_path.read_bytes().hex()}">
+        <link rel="apple-touch-icon" sizes="180x180"
+              href="data:image/png;base64,{b64_icon}">
+        <link rel="icon" type="image/png"
+              href="data:image/png;base64,{b64_icon}">
         """,
         unsafe_allow_html=True,
     )
+
+    # Pour Streamlit (favicon)
+    page_icon = "apple-touch-icon.png"
+
 
 # =========================
 #  CONFIG & GESTION TOKENS
@@ -377,8 +389,10 @@ Miguel-ready summary
 
 st.set_page_config(
     page_title="Dashboard Strava – Miguel",
+    page_icon=page_icon,  # notre icône si trouvée
     layout="wide",
 )
+
 
 st.title("📊 Dashboard Strava – Mode Miguel Ultra Complet")
 
