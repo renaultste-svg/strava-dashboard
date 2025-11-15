@@ -399,8 +399,8 @@ st.title("📊 Dashboard Strava – Mode Miguel Ultra Complet")
 
 st.markdown(
     """
-Ce tableau de bord est **perso** : il sert à suivre ton volume CAP + vélo,
-et à générer un petit rapport à coller dans la discussion avec Miguel.
+Ce tableau de bord est **perso** : il sert à suivre mon volume CAP + vélo,
+et à générer un petit rapport à coller dans une discussion avec Miguel mon coach chatGPTAAAAAAYYYYY
 """
 )
 
