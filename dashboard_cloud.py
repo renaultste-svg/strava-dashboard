@@ -1,3 +1,5 @@
+import streamlit as st
+from pathlib import Path
 import time
 import json
 from pathlib import Path
@@ -7,6 +9,16 @@ import requests
 import pandas as pd
 import streamlit as st
 import altair as alt
+
+# --- Ajouter l’icône iPhone (apple-touch-icon) ---
+icon_path = Path("apple-touch-icon.png")
+if icon_path.exists():
+    st.markdown(
+        f"""
+        <link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,{icon_path.read_bytes().hex()}">
+        """,
+        unsafe_allow_html=True,
+    )
 
 # =========================
 #  CONFIG & GESTION TOKENS
