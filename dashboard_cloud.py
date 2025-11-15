@@ -9,15 +9,20 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 
-# --- Ajouter l’icône iPhone + favicon (apple-touch-icon) ---
+# --- D'abord : config de la page (sans markdown) ---
+
 icon_path = Path("apple-touch-icon.png")
-page_icon = None
+page_icon = "apple-touch-icon.png" if icon_path.exists() else None
+
+st.set_page_config(
+    page_title="Dashboard Strava – Miguel",
+    page_icon=page_icon,  # notre icône si trouvée
+    layout="wide",
+)
+
+# --- Ensuite seulement : liens pour iPhone / favicon ---
 
 if icon_path.exists():
-    # pour le favicon Streamlit (onglet du navigateur)
-    page_icon = "apple-touch-icon.png"
-
-    # pour iPhone / iPad : icône écran d'accueil
     st.markdown(
         """
         <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -25,6 +30,7 @@ if icon_path.exists():
         """,
         unsafe_allow_html=True,
     )
+
 
 
 # =========================
