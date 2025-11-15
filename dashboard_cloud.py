@@ -395,12 +395,12 @@ st.set_page_config(
 )
 
 
-st.title("📊 Dashboard Strava – Mode Miguel Ultra Complet")
+st.title("📊 Dashboard – analyse hyper POUSSAY d'ACTIVITAY sportives ")
 
 st.markdown(
     """
-Ce tableau de bord est **perso** : il sert à suivre mon volume CAP + vélo,
-et à générer un petit rapport à coller dans une discussion avec Miguel mon coach chatGPTAAAAAAYYYYY
+Ce tableau de bord est **perso** : il sert à suivre mon volume sportif,
+et à générer un petit rapport sur des periodes glissantes 7 et 30 jours
 """
 )
 
