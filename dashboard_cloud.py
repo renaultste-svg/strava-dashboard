@@ -335,7 +335,7 @@ def build_text_report(
         sign = "+" if delta_pct >= 0 else ""
         delta_str = f"{sign}{delta_pct:.1f} %"
 
-    report = f"""APPORT D’ENTRAÎNEMENT – EXTRACTION STRAVA
+    report = f"""RAPPORT D’ENTRAÎNEMENT – EXTRACTION STRAVA
 ==========================================
 Date de référence (dernière activité) : {last_date}
 
