@@ -395,7 +395,7 @@ st.set_page_config(
 )
 
 
-st.title("📊 Dashboard – analyse hyper POUSSAY d'ACTIVITAY sportives ")
+st.title("📊 Dashboard – analyse d'activités sportives ")
 
 st.markdown(
     """
