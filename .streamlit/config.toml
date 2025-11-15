@@ -1,0 +1,14 @@
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#ff7300"
+backgroundColor = "#ffffff"
+textColor = "#000000"
+
+[server]
+headless = true
+
+[client]
+# Nom du fichier icône que tu as ajouté
+favicon = "apple-touch-icon.png"
