@@ -14,22 +14,17 @@ icon_path = Path("apple-touch-icon.png")
 page_icon = None
 
 if icon_path.exists():
-    with icon_path.open("rb") as f:
-        b64_icon = base64.b64encode(f.read()).decode("utf-8")
+    # pour le favicon Streamlit (onglet du navigateur)
+    page_icon = "apple-touch-icon.png"
 
-    # Icône pour iPhone (écran d’accueil)
+    # pour iPhone / iPad : icône écran d'accueil
     st.markdown(
-        f"""
-        <link rel="apple-touch-icon" sizes="180x180"
-              href="data:image/png;base64,{b64_icon}">
-        <link rel="icon" type="image/png"
-              href="data:image/png;base64,{b64_icon}">
+        """
+        <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+        <link rel="icon" type="image/png" href="apple-touch-icon.png">
         """,
         unsafe_allow_html=True,
     )
-
-    # Pour Streamlit (favicon)
-    page_icon = "apple-touch-icon.png"
 
 
 # =========================
