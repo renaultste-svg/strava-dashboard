@@ -400,7 +400,7 @@ st.title("📊 Dashboard – analyse hyper POUSSAY d'ACTIVITAY sportives ")
 st.markdown(
     """
 Ce tableau de bord est **perso** : il sert à suivre mon volume sportif,
-et à générer un petit rapport sur des periodes glissantes 7 et 30 jours
+et à générer un petit rapport avec un calcul de charge sur des periodes glissantes 7 et 30 jours pour la prévention des blessures en particulier la périostite
 """
 )
 
