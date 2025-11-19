@@ -44,6 +44,29 @@ CLIENT_SECRET = st.secrets["STRAVA_CLIENT_SECRET"]
 INITIAL_REFRESH_TOKEN = st.secrets["STRAVA_REFRESH_TOKEN"]
 
 DEFAULT_WEIGHT_KG = float(st.secrets.get("ATHLETE_WEIGHT_KG", 89.0))
+# Estimation FC max pour les zones (à ajuster si tu as une vraie valeur mesurée)
+ATHLETE_AGE = 53
+ATHLETE_MAX_HR = int(st.secrets.get("ATHLETE_MAX_HR", 220 - ATHLETE_AGE))
+
+
+def hr_zone_from_bpm(bpm: float | None) -> str | None:
+    """Retourne une zone de FC (Z1–Z5) à partir de la FC moyenne."""
+    if bpm is None or bpm <= 0:
+        return None
+
+    hrmax = ATHLETE_MAX_HR
+    ratio = bpm / hrmax
+
+    if ratio < 0.60:
+        return "Z1"
+    elif ratio < 0.70:
+        return "Z2"
+    elif ratio < 0.80:
+        return "Z3"
+    elif ratio < 0.90:
+        return "Z4"
+    else:
+        return "Z5"
 
 # NEW – constantes pour les équivalences gourmandes
 CAL_PER_PIZZA_SLICE = 250.0       # ~250 kcal par part de pizza
@@ -159,6 +182,7 @@ def activities_to_dataframe(
         moving_time_min = moving_time_s / 60
 
         calories = a.get("calories")
+        avg_hr = a.get("average_heartrate")  # peut être None
 
         # Vélo : conversion kJ -> kcal si besoin
         if calories is None and a.get("kilojoules") is not None:
@@ -168,7 +192,7 @@ def activities_to_dataframe(
         if calories is None and sport in ("Run", "TrailRun", "NordicSki"):
             calories = athlete_weight_kg * distance_km
 
-        rows.append(
+          rows.append(
             {
                 "id": a.get("id"),
                 "name": a.get("name"),
@@ -177,8 +201,10 @@ def activities_to_dataframe(
                 "moving_time_min": moving_time_min,
                 "start_date": start_date,
                 "calories": calories or 0.0,
+                "avg_hr": avg_hr,
             }
         )
+
 
     if not rows:
         return pd.DataFrame()
@@ -552,6 +578,45 @@ chart_sport = (
 )
 
 st.altair_chart(chart_sport, use_container_width=True)
+# ----- Zones de fréquence cardiaque CAP -----
+
+st.subheader("🫀 Répartition hebdomadaire des zones de FC (course à pied)")
+
+# On ne garde que la CAP, avec une FC moyenne connue
+df_run_hr = df[df["sport"].isin(["Run", "TrailRun"])].copy()
+df_run_hr = df_run_hr[df_run_hr["avg_hr"].notna()]
+
+if df_run_hr.empty:
+    st.info("Pas assez de données de fréquence cardiaque pour afficher les zones de FC.")
+else:
+    # Calcul de la zone pour chaque activité
+    df_run_hr["hr_zone"] = df_run_hr["avg_hr"].apply(hr_zone_from_bpm)
+
+    # Agrégation : temps passé par semaine et par zone
+    weekly_hr_zones = (
+        df_run_hr.groupby(["week_label", "hr_zone"])
+        .agg(total_time_min=("moving_time_min", "sum"))
+        .reset_index()
+        .sort_values(["week_label", "hr_zone"])
+    )
+
+    chart_hr = (
+        alt.Chart(weekly_hr_zones)
+        .mark_bar()
+        .encode(
+            x=alt.X("week_label:N", title="Semaine"),
+            y=alt.Y(
+                "total_time_min:Q",
+                title="Temps cumulé en course (min)",
+                stack="zero",
+            ),
+            color=alt.Color("hr_zone:N", title="Zone FC"),
+            tooltip=["week_label", "hr_zone", "total_time_min"],
+        )
+        .properties(height=350)
+    )
+
+    st.altair_chart(chart_hr, use_container_width=True)
 
 # ----- Répartition par sport -----
 
