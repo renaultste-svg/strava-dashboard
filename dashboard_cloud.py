@@ -44,10 +44,10 @@ CLIENT_SECRET = st.secrets["STRAVA_CLIENT_SECRET"]
 INITIAL_REFRESH_TOKEN = st.secrets["STRAVA_REFRESH_TOKEN"]
 
 DEFAULT_WEIGHT_KG = float(st.secrets.get("ATHLETE_WEIGHT_KG", 89.0))
+
 # Estimation FC max pour les zones (à ajuster si tu as une vraie valeur mesurée)
 ATHLETE_AGE = 53
 ATHLETE_MAX_HR = int(st.secrets.get("ATHLETE_MAX_HR", 220 - ATHLETE_AGE))
-
 
 def hr_zone_from_bpm(bpm: float | None) -> str | None:
     """Retourne une zone de FC (Z1–Z5) à partir de la FC moyenne."""
@@ -59,7 +59,7 @@ def hr_zone_from_bpm(bpm: float | None) -> str | None:
 
     # Zones typées course à pied
     if ratio < 0.70:
-        return "Z1"  # <70 % HRmax : endurance très facile / EF basse
+        return "Z1"  # <70 % HRmax : très facile / EF basse
     elif ratio < 0.80:
         return "Z2"  # 70–80 % : endurance fondamentale
     elif ratio < 0.87:
@@ -69,10 +69,10 @@ def hr_zone_from_bpm(bpm: float | None) -> str | None:
     else:
         return "Z5"  # >93 % : très intense
 
-
 # NEW – constantes pour les équivalences gourmandes
 CAL_PER_PIZZA_SLICE = 250.0       # ~250 kcal par part de pizza
 CAL_PER_PATE_LORRAIN = 500.0      # ~500 kcal par part de pâté lorrain
+
 
 def save_tokens(tokens: dict) -> None:
     """Sauvegarde les tokens dans un fichier local du cloud."""
@@ -223,6 +223,7 @@ def activities_to_dataframe(
 
     return df
 
+
 # =========================
 #  ANALYSE 7J / 30J & ACWR
 # =========================
@@ -342,7 +343,8 @@ def build_text_report(
     if df.empty:
         return "Aucune activité trouvée sur la période."
 
-    last_date = df["start_date"].max().date()
+    end_dt = df["start_date"].max()
+    last_date = end_dt.date()
 
     def fmt_hours(h: float) -> str:
         return f"{h:.1f} h"
@@ -362,6 +364,37 @@ def build_text_report(
     else:
         sign = "+" if delta_pct >= 0 else ""
         delta_str = f"{sign}{delta_pct:.1f} %"
+
+    # --------- Ajout : part du temps en Z2 et FC moyenne CAP sur 7j ---------
+    run_7 = df[
+        (df["sport"].isin(["Run", "TrailRun"]))
+        & (df["start_date"] >= end_dt - timedelta(days=6))
+        & (df["start_date"] <= end_dt)
+    ].copy()
+
+    z2_pct_str = "n.c. (pas de FC exploitable)"
+    avg_hr_7_str = "n.c."
+
+    if not run_7.empty and "avg_hr" in run_7.columns:
+        run_7_hr = run_7[run_7["avg_hr"].notna()].copy()
+        if not run_7_hr.empty:
+            # Zone de FC
+            run_7_hr["hr_zone"] = run_7_hr["avg_hr"].apply(hr_zone_from_bpm)
+
+            total_time_min_7 = float(run_7_hr["moving_time_min"].sum())
+            if total_time_min_7 > 0:
+                z2_time_min = float(
+                    run_7_hr.loc[run_7_hr["hr_zone"] == "Z2", "moving_time_min"].sum()
+                )
+                pct_z2 = z2_time_min / total_time_min_7 * 100.0
+                z2_pct_str = f"{pct_z2:.1f} %"
+
+                # FC moyenne pondérée par le temps
+                avg_hr_7 = float(
+                    (run_7_hr["avg_hr"] * run_7_hr["moving_time_min"]).sum()
+                    / total_time_min_7
+                )
+                avg_hr_7_str = f"{avg_hr_7:.0f} bpm"
 
     report = f"""RAPPORT D’ENTRAÎNEMENT – EXTRACTION STRAVA
 ==========================================
@@ -399,10 +432,17 @@ Distance CAP 7j en cours      : {d7:.2f} km
 Distance CAP 7j précédents    : {d7_prev:.2f} km
 Évolution                     : {delta_str}
 
+Fréquence cardiaque – 7 derniers jours (CAP)
+--------------------------------------------
+Part du temps CAP en Z2 (endurance fondamentale, 7j) : {z2_pct_str}
+Fréquence cardiaque moyenne CAP (7j, pondérée par le temps) : {avg_hr_7_str}
+
 Miguel-ready summary
 ---------------------
 - CAP 7j : {summary_7["run_distance"]:.2f} km sur {summary_7["run_sessions"]} séances.
 - Allure moyenne CAP (7j) : {pace_7}
+- Part du temps CAP en Z2 (7j) : {z2_pct_str}
+- FC moyenne CAP (7j) : {avg_hr_7_str}
 - Calories totales 7j (tous sports) : {fmt_kcal(summary_7["total_kcal"])}
 - CAP 30j : {summary_30["run_distance"]:.2f} km sur {summary_30["run_sessions"]} séances.
 - Calories CAP 30j : {fmt_kcal(summary_30["total_kcal"])}
@@ -416,18 +456,12 @@ Miguel-ready summary
 #  DASHBOARD STREAMLIT
 # =========================
 
-st.set_page_config(
-    page_title="Dashboard Strava – Miguel",
-    page_icon=page_icon,  # notre icône si trouvée
-    layout="wide",
-)
-
 st.title("📊 Dashboard – analyse d'activités sportives ")
 
 st.markdown(
     """
 Ce tableau de bord est **perso** : il sert à suivre mon volume sportif,
-et à générer un petit rapport avec un calcul de charge sur des periodes glissantes 7 et 30 jours pour la prévention des blessures 
+et à générer un petit rapport avec un calcul de charge sur des periodes glissantes 7 et 30 jours pour la prévention des blessures.
 """
 )
 
@@ -578,6 +612,7 @@ chart_sport = (
 )
 
 st.altair_chart(chart_sport, use_container_width=True)
+
 # ----- Zones de fréquence cardiaque CAP -----
 
 st.subheader("🫀 Répartition hebdomadaire des zones de FC (course à pied)")
@@ -592,7 +627,7 @@ else:
     # Calcul de la zone pour chaque activité
     df_run_hr["hr_zone"] = df_run_hr["avg_hr"].apply(hr_zone_from_bpm)
 
-         # Agrégation : temps passé par semaine et par zone
+    # Agrégation : temps passé par semaine et par zone
     weekly_hr_zones = (
         df_run_hr.groupby(["week_label", "hr_zone"])
         .agg(total_time_min=("moving_time_min", "sum"))
@@ -610,7 +645,7 @@ else:
     }
     weekly_hr_zones["zone_label"] = weekly_hr_zones["hr_zone"].map(ZONE_LABELS)
 
-    # Ordre numérique pour l'empilement (bas → haut)
+    # Ordre pour l'empilement (bas → haut)
     ZONE_ORDER = {"Z1": 1, "Z2": 2, "Z3": 3, "Z4": 4, "Z5": 5}
     weekly_hr_zones["zone_order"] = weekly_hr_zones["hr_zone"].map(ZONE_ORDER)
 
@@ -635,7 +670,6 @@ else:
                     "Z5 (>93% HRmax)",
                 ],
             ),
-            # 👉 c'est ça qui fixe l'ordre d'empilement bas → haut
             order=alt.Order("zone_order:Q"),
             tooltip=["week_label", "zone_label", "total_time_min"],
         )
@@ -646,7 +680,7 @@ else:
 
     # ----- Focus sur la Z2 (endurance fondamentale) -----
 
-    st.subheader("⚙️ Part de temps en Z2 (endurance fondamentale)")
+    st.subheader("🌸 Part de temps en Z2 (endurance fondamentale)")
 
     # Total temps course par semaine
     weekly_total_time = (
@@ -789,7 +823,6 @@ st.dataframe(
 )
 
 # ----- Bloc rapport à copier-coller -----
-# ----- Bloc rapport à copier-coller -----
 
 st.markdown("---")
 st.subheader("📝 Rapport 'Miguel-ready' à copier-coller")
@@ -801,11 +834,7 @@ st.text_area(
     height=400,
 )
 
-# Version corrigée du bouton "copier dans le presse-papiers"
-# (⚠️ base64 et components doivent être importés EN HAUT du fichier :
-#   import base64
-#   import streamlit.components.v1 as components
-# )
+# Bouton "copier dans le presse-papiers"
 
 report_b64 = base64.b64encode(report_text.encode("utf-8")).decode("ascii")
 
@@ -844,4 +873,3 @@ components.html(
 st.caption(
     "Quand tu veux qu'on analyse, tu copies ce bloc (ou tu utilises le bouton ci-dessus) dans la discussion avec Miguel."
 )
-
