@@ -592,7 +592,7 @@ else:
     # Calcul de la zone pour chaque activité
     df_run_hr["hr_zone"] = df_run_hr["avg_hr"].apply(hr_zone_from_bpm)
 
-     # Agrégation : temps passé par semaine et par zone
+         # Agrégation : temps passé par semaine et par zone
     weekly_hr_zones = (
         df_run_hr.groupby(["week_label", "hr_zone"])
         .agg(total_time_min=("moving_time_min", "sum"))
@@ -610,6 +610,9 @@ else:
     }
     weekly_hr_zones["zone_label"] = weekly_hr_zones["hr_zone"].map(ZONE_LABELS)
 
+    # Ordre numérique pour l'empilement (bas → haut)
+    ZONE_ORDER = {"Z1": 1, "Z2": 2, "Z3": 3, "Z4": 4, "Z5": 5}
+    weekly_hr_zones["zone_order"] = weekly_hr_zones["hr_zone"].map(ZONE_ORDER)
 
     chart_hr = (
         alt.Chart(weekly_hr_zones)
@@ -624,22 +627,23 @@ else:
             color=alt.Color(
                 "zone_label:N",
                 title="Zone FC",
-  sort=[
-    "Z1 (≤70% HRmax)",
-    "Z2 (70–80% HRmax)",
-    "Z3 (80–87% HRmax)",
-    "Z4 (87–93% HRmax)",
-    "Z5 (>93% HRmax)",
-]
-
+                sort=[
+                    "Z1 (≤70% HRmax)",
+                    "Z2 (70–80% HRmax)",
+                    "Z3 (80–87% HRmax)",
+                    "Z4 (87–93% HRmax)",
+                    "Z5 (>93% HRmax)",
+                ],
             ),
+            # 👉 c'est ça qui fixe l'ordre d'empilement bas → haut
+            order=alt.Order("zone_order:Q"),
             tooltip=["week_label", "zone_label", "total_time_min"],
         )
         .properties(height=350)
     )
 
-
     st.altair_chart(chart_hr, use_container_width=True)
+
     # ----- Focus sur la Z2 (endurance fondamentale) -----
 
     st.subheader("⚙️ Part de temps en Z2 (endurance fondamentale)")
