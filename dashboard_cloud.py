@@ -611,7 +611,7 @@ else:
     weekly_hr_zones["zone_label"] = weekly_hr_zones["hr_zone"].map(ZONE_LABELS)
 
 
-     chart_hr = (
+    chart_hr = (
         alt.Chart(weekly_hr_zones)
         .mark_bar()
         .encode(
