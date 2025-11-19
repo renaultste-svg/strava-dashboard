@@ -640,6 +640,7 @@ st.dataframe(
 )
 
 # ----- Bloc rapport à copier-coller -----
+# ----- Bloc rapport à copier-coller -----
 
 st.markdown("---")
 st.subheader("📝 Rapport 'Miguel-ready' à copier-coller")
@@ -651,20 +652,12 @@ st.text_area(
     height=400,
 )
 
-# NEW – bouton pour copier le rapport dans le presse-papiers
-import base64
-import streamlit.components.v1 as components
+# Version corrigée du bouton "copier dans le presse-papiers"
+# (⚠️ base64 et components doivent être importés EN HAUT du fichier :
+#   import base64
+#   import streamlit.components.v1 as components
+# )
 
-# ...
-
-report_text = build_text_report(df, summary_7, summary_30, acwr)
-st.text_area(
-    "Rapport brut",
-    value=report_text,
-    height=400,
-)
-
-# ✅ Version corrigée du bouton "copier dans le presse-papiers"
 report_b64 = base64.b64encode(report_text.encode("utf-8")).decode("ascii")
 
 components.html(
@@ -702,3 +695,4 @@ components.html(
 st.caption(
     "Quand tu veux qu'on analyse, tu copies ce bloc (ou tu utilises le bouton ci-dessus) dans la discussion avec Miguel."
 )
+
