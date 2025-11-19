@@ -57,16 +57,18 @@ def hr_zone_from_bpm(bpm: float | None) -> str | None:
     hrmax = ATHLETE_MAX_HR
     ratio = bpm / hrmax
 
-    if ratio < 0.60:
-        return "Z1"
-    elif ratio < 0.70:
-        return "Z2"
+    # Zones typées course à pied
+    if ratio < 0.70:
+        return "Z1"  # <70 % HRmax : endurance très facile / EF basse
     elif ratio < 0.80:
-        return "Z3"
-    elif ratio < 0.90:
-        return "Z4"
+        return "Z2"  # 70–80 % : endurance fondamentale
+    elif ratio < 0.87:
+        return "Z3"  # 80–87 % : tempo / seuil bas
+    elif ratio < 0.93:
+        return "Z4"  # 87–93 % : seuil / soutenu
     else:
-        return "Z5"
+        return "Z5"  # >93 % : très intense
+
 
 # NEW – constantes pour les équivalences gourmandes
 CAL_PER_PIZZA_SLICE = 250.0       # ~250 kcal par part de pizza
@@ -590,7 +592,7 @@ else:
     # Calcul de la zone pour chaque activité
     df_run_hr["hr_zone"] = df_run_hr["avg_hr"].apply(hr_zone_from_bpm)
 
-    # Agrégation : temps passé par semaine et par zone
+     # Agrégation : temps passé par semaine et par zone
     weekly_hr_zones = (
         df_run_hr.groupby(["week_label", "hr_zone"])
         .agg(total_time_min=("moving_time_min", "sum"))
@@ -598,7 +600,18 @@ else:
         .sort_values(["week_label", "hr_zone"])
     )
 
-    chart_hr = (
+    # Labels explicites pour la légende
+    ZONE_LABELS = {
+        "Z1": "Z1 (≤70% HRmax)",
+        "Z2": "Z2 (70–80% HRmax)",
+        "Z3": "Z3 (80–87% HRmax)",
+        "Z4": "Z4 (87–93% HRmax)",
+        "Z5": "Z5 (>93% HRmax)",
+    }
+    weekly_hr_zones["zone_label"] = weekly_hr_zones["hr_zone"].map(ZONE_LABELS)
+
+
+     chart_hr = (
         alt.Chart(weekly_hr_zones)
         .mark_bar()
         .encode(
@@ -608,11 +621,22 @@ else:
                 title="Temps cumulé en course (min)",
                 stack="zero",
             ),
-            color=alt.Color("hr_zone:N", title="Zone FC"),
-            tooltip=["week_label", "hr_zone", "total_time_min"],
+            color=alt.Color(
+                "zone_label:N",
+                title="Zone FC",
+                sort=[
+                    "Z1 (≤70% HRmax)",
+                    "Z2 (70–80% HRmax)",
+                    "Z3 (80–87% HRmax)",
+                    "Z4 (87–93% HRmax)",
+                    "Z5 (>93% HRmax)",
+                ],
+            ),
+            tooltip=["week_label", "zone_label", "total_time_min"],
         )
         .properties(height=350)
     )
+
 
     st.altair_chart(chart_hr, use_container_width=True)
 
