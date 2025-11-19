@@ -49,6 +49,7 @@ DEFAULT_WEIGHT_KG = float(st.secrets.get("ATHLETE_WEIGHT_KG", 89.0))
 ATHLETE_AGE = 53
 ATHLETE_MAX_HR = int(st.secrets.get("ATHLETE_MAX_HR", 220 - ATHLETE_AGE))
 
+
 def hr_zone_from_bpm(bpm: float | None) -> str | None:
     """Retourne une zone de FC (Z1–Z5) à partir de la FC moyenne."""
     if bpm is None or bpm <= 0:
@@ -59,15 +60,16 @@ def hr_zone_from_bpm(bpm: float | None) -> str | None:
 
     # Zones typées course à pied
     if ratio < 0.70:
-        return "Z1"  # <70 % HRmax : très facile / EF basse
+        return "Z1"  # <70 % HRmax : très facile
     elif ratio < 0.80:
         return "Z2"  # 70–80 % : endurance fondamentale
     elif ratio < 0.87:
         return "Z3"  # 80–87 % : tempo / seuil bas
     elif ratio < 0.93:
-        return "Z4"  # 87–93 % : seuil / soutenu
+        return "Z4"  # 87–93 % : seuil
     else:
         return "Z5"  # >93 % : très intense
+
 
 # NEW – constantes pour les équivalences gourmandes
 CAL_PER_PIZZA_SLICE = 250.0       # ~250 kcal par part de pizza
@@ -333,6 +335,38 @@ def compute_acwr(df: pd.DataFrame, last_date: datetime) -> dict:
     }
 
 
+def compute_run_hr_7d(df: pd.DataFrame, last_date: datetime) -> dict:
+    """Calcule % Z2 et FC moyenne CAP pondérée sur les 7 derniers jours."""
+    run = df[
+        df["sport"].isin(["Run", "TrailRun"]) & df["avg_hr"].notna()
+    ].copy()
+    if run.empty:
+        return {"pct_z2": None, "avg_hr": None}
+
+    start = last_date - timedelta(days=6)
+    mask = (run["start_date"] >= start) & (run["start_date"] <= last_date)
+    run_7d = run.loc[mask]
+    if run_7d.empty:
+        return {"pct_z2": None, "avg_hr": None}
+
+    run_7d["hr_zone"] = run_7d["avg_hr"].apply(hr_zone_from_bpm)
+
+    total_time = float(run_7d["moving_time_min"].sum())
+    if total_time <= 0:
+        return {"pct_z2": None, "avg_hr": None}
+
+    time_z2 = float(
+        run_7d.loc[run_7d["hr_zone"] == "Z2", "moving_time_min"].sum()
+    )
+    pct_z2 = time_z2 / total_time * 100.0
+
+    avg_hr = float(
+        (run_7d["avg_hr"] * run_7d["moving_time_min"]).sum() / total_time
+    )
+
+    return {"pct_z2": pct_z2, "avg_hr": avg_hr}
+
+
 def build_text_report(
     df: pd.DataFrame,
     summary_7: dict,
@@ -343,8 +377,22 @@ def build_text_report(
     if df.empty:
         return "Aucune activité trouvée sur la période."
 
-    end_dt = df["start_date"].max()
-    last_date = end_dt.date()
+    dt_last = df["start_date"].max()
+    last_date = dt_last.date()
+
+    hr_metrics = compute_run_hr_7d(df, last_date=dt_last)
+    pct_z2 = hr_metrics["pct_z2"]
+    avg_hr = hr_metrics["avg_hr"]
+
+    if pct_z2 is not None:
+        pct_z2_str = f"{pct_z2:.1f} %"
+    else:
+        pct_z2_str = "n.c."
+
+    if avg_hr is not None:
+        avg_hr_str = f"{int(round(avg_hr))} bpm"
+    else:
+        avg_hr_str = "n.c."
 
     def fmt_hours(h: float) -> str:
         return f"{h:.1f} h"
@@ -364,37 +412,6 @@ def build_text_report(
     else:
         sign = "+" if delta_pct >= 0 else ""
         delta_str = f"{sign}{delta_pct:.1f} %"
-
-    # --------- Ajout : part du temps en Z2 et FC moyenne CAP sur 7j ---------
-    run_7 = df[
-        (df["sport"].isin(["Run", "TrailRun"]))
-        & (df["start_date"] >= end_dt - timedelta(days=6))
-        & (df["start_date"] <= end_dt)
-    ].copy()
-
-    z2_pct_str = "n.c. (pas de FC exploitable)"
-    avg_hr_7_str = "n.c."
-
-    if not run_7.empty and "avg_hr" in run_7.columns:
-        run_7_hr = run_7[run_7["avg_hr"].notna()].copy()
-        if not run_7_hr.empty:
-            # Zone de FC
-            run_7_hr["hr_zone"] = run_7_hr["avg_hr"].apply(hr_zone_from_bpm)
-
-            total_time_min_7 = float(run_7_hr["moving_time_min"].sum())
-            if total_time_min_7 > 0:
-                z2_time_min = float(
-                    run_7_hr.loc[run_7_hr["hr_zone"] == "Z2", "moving_time_min"].sum()
-                )
-                pct_z2 = z2_time_min / total_time_min_7 * 100.0
-                z2_pct_str = f"{pct_z2:.1f} %"
-
-                # FC moyenne pondérée par le temps
-                avg_hr_7 = float(
-                    (run_7_hr["avg_hr"] * run_7_hr["moving_time_min"]).sum()
-                    / total_time_min_7
-                )
-                avg_hr_7_str = f"{avg_hr_7:.0f} bpm"
 
     report = f"""RAPPORT D’ENTRAÎNEMENT – EXTRACTION STRAVA
 ==========================================
@@ -434,15 +451,15 @@ Distance CAP 7j précédents    : {d7_prev:.2f} km
 
 Fréquence cardiaque – 7 derniers jours (CAP)
 --------------------------------------------
-Part du temps CAP en Z2 (endurance fondamentale, 7j) : {z2_pct_str}
-Fréquence cardiaque moyenne CAP (7j, pondérée par le temps) : {avg_hr_7_str}
+Part du temps CAP en Z2 (endurance fondamentale, 7j) : {pct_z2_str}
+Fréquence cardiaque moyenne CAP (7j, pondérée par le temps) : {avg_hr_str}
 
 Miguel-ready summary
 ---------------------
 - CAP 7j : {summary_7["run_distance"]:.2f} km sur {summary_7["run_sessions"]} séances.
 - Allure moyenne CAP (7j) : {pace_7}
-- Part du temps CAP en Z2 (7j) : {z2_pct_str}
-- FC moyenne CAP (7j) : {avg_hr_7_str}
+- Part du temps CAP en Z2 (7j) : {pct_z2_str}
+- FC moyenne CAP (7j) : {avg_hr_str}
 - Calories totales 7j (tous sports) : {fmt_kcal(summary_7["total_kcal"])}
 - CAP 30j : {summary_30["run_distance"]:.2f} km sur {summary_30["run_sessions"]} séances.
 - Calories CAP 30j : {fmt_kcal(summary_30["total_kcal"])}
@@ -461,7 +478,7 @@ st.title("📊 Dashboard – analyse d'activités sportives ")
 st.markdown(
     """
 Ce tableau de bord est **perso** : il sert à suivre mon volume sportif,
-et à générer un petit rapport avec un calcul de charge sur des periodes glissantes 7 et 30 jours pour la prévention des blessures.
+et à générer un petit rapport avec un calcul de charge sur des periodes glissantes 7 et 30 jours pour la prévention des blessures 
 """
 )
 
@@ -659,57 +676,45 @@ else:
                 title="Temps cumulé en course (min)",
                 stack="zero",
             ),
-  chart_hr = (
-    alt.Chart(weekly_hr_zones)
-    .mark_bar()
-    .encode(
-        x=alt.X("week_label:N", title="Semaine"),
-        y=alt.Y(
-            "total_time_min:Q",
-            title="Temps cumulé en course (min)",
-            stack="zero",
-        ),
-        color=alt.Color(
-            "zone_label:N",
-            title="Zone FC",
-            scale=alt.Scale(
-                domain=[
+            color=alt.Color(
+                "zone_label:N",
+                title="Zone FC",
+                scale=alt.Scale(
+                    domain=[
+                        "Z1 (≤70% HRmax)",
+                        "Z2 (70–80% HRmax)",
+                        "Z3 (80–87% HRmax)",
+                        "Z4 (87–93% HRmax)",
+                        "Z5 (>93% HRmax)",
+                    ],
+                    range=[
+                        "#cfe2ff",  # Z1 - bleu très clair
+                        "#9ec5fe",  # Z2 - bleu clair
+                        "#6ea8fe",  # Z3 - bleu moyen
+                        "#3d8bfd",  # Z4 - bleu foncé
+                        "#0d6efd",  # Z5 - bleu très foncé
+                    ],
+                ),
+                sort=[
                     "Z1 (≤70% HRmax)",
                     "Z2 (70–80% HRmax)",
                     "Z3 (80–87% HRmax)",
                     "Z4 (87–93% HRmax)",
                     "Z5 (>93% HRmax)",
                 ],
-                range=[
-                    "#cfe2ff",  # Z1 - bleu très clair
-                    "#9ec5fe",  # Z2 - bleu clair
-                    "#6ea8fe",  # Z3 - bleu moyen
-                    "#3d8bfd",  # Z4 - bleu foncé
-                    "#0d6efd",  # Z5 - bleu très foncé
-                ],
             ),
-            sort=[
-                "Z1 (≤70% HRmax)",
-                "Z2 (70–80% HRmax)",
-                "Z3 (80–87% HRmax)",
-                "Z4 (87–93% HRmax)",
-                "Z5 (>93% HRmax)",
-            ],
-        ),
-        order=alt.Order("zone_order:Q"),
-        tooltip=["week_label", "zone_label", "total_time_min"],
+            order=alt.Order("zone_order:Q"),
+            tooltip=["week_label", "zone_label", "total_time_min"],
+        )
+        .properties(height=350)
     )
-    .properties(height=350)
-)
 
-st.altair_chart(chart_hr, use_container_width=True)
-
+    st.altair_chart(chart_hr, use_container_width=True)
 
     # ----- Focus sur la Z2 (endurance fondamentale) -----
 
     st.subheader("🌸 Part de temps en Z2 (endurance fondamentale)")
 
-    # Total temps course par semaine
     weekly_total_time = (
         weekly_hr_zones.groupby("week_label")["total_time_min"]
         .sum()
@@ -717,7 +722,6 @@ st.altair_chart(chart_hr, use_container_width=True)
         .rename(columns={"total_time_min": "total_time_all_zones"})
     )
 
-    # Temps en Z2 uniquement
     weekly_z2_time = (
         weekly_hr_zones[weekly_hr_zones["hr_zone"] == "Z2"]
         .groupby("week_label")["total_time_min"]
@@ -726,7 +730,6 @@ st.altair_chart(chart_hr, use_container_width=True)
         .rename(columns={"total_time_min": "total_time_z2"})
     )
 
-    # Jointure + calcul du pourcentage
     weekly_z2_share = weekly_total_time.merge(
         weekly_z2_time, on="week_label", how="left"
     )
@@ -861,7 +864,7 @@ st.text_area(
     height=400,
 )
 
-# Bouton "copier dans le presse-papiers"
+# Bouton copier dans le presse-papiers
 
 report_b64 = base64.b64encode(report_text.encode("utf-8")).decode("ascii")
 
