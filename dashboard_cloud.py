@@ -652,9 +652,35 @@ st.text_area(
 )
 
 # NEW – bouton pour copier le rapport dans le presse-papiers
-report_b64 = base64.b64encode(report_text.encode("utf-8")).decode("utf-8")
+import base64
+import streamlit.components.v1 as components
+
+# ...
+
+report_text = build_text_report(df, summary_7, summary_30, acwr)
+st.text_area(
+    "Rapport brut",
+    value=report_text,
+    height=400,
+)
+
+# ✅ Version corrigée du bouton "copier dans le presse-papiers"
+report_b64 = base64.b64encode(report_text.encode("utf-8")).decode("ascii")
+
 components.html(
     f"""
+    <script>
+    function copyReport() {{
+        const binary = atob("{report_b64}");
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {{
+            bytes[i] = binary.charCodeAt(i);
+        }}
+        const decoded = new TextDecoder("utf-8").decode(bytes);
+        navigator.clipboard.writeText(decoded);
+    }}
+    </script>
+
     <button
         style="
             padding: 0.4rem 0.8rem;
@@ -663,11 +689,11 @@ components.html(
             cursor: pointer;
             background-color: #f5f5f5;
         "
-        onclick="navigator.clipboard.writeText(atob('{report_b64}'))">
+        onclick="copyReport()">
         Copier le rapport dans le presse-papiers
     </button>
     <p style="font-size: 0.8rem; color: gray; margin-top: 0.4rem;">
-        Le bouton copie le texte ci-dessus dans le presse-papiers (navigateurs compatibles uniquement).
+        Le bouton copie le texte ci-dessus dans le presse-papiers (avec accents corrects 😇).
     </p>
     """,
     height=80,
