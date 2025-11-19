@@ -659,17 +659,34 @@ else:
                 title="Temps cumulé en course (min)",
                 stack="zero",
             ),
-            color=alt.Color(
-                "zone_label:N",
-                title="Zone FC",
-                sort=[
-                    "Z1 (≤70% HRmax)",
-                    "Z2 (70–80% HRmax)",
-                    "Z3 (80–87% HRmax)",
-                    "Z4 (87–93% HRmax)",
-                    "Z5 (>93% HRmax)",
-                ],
-            ),
+        color=alt.Color(
+    "zone_label:N",
+    title="Zone FC",
+    scale=alt.Scale(
+        domain=[
+            "Z1 (≤70% HRmax)",
+            "Z2 (70–80% HRmax)",
+            "Z3 (80–87% HRmax)",
+            "Z4 (87–93% HRmax)",
+            "Z5 (>93% HRmax)",
+        ],
+        range=[
+            "#cfe2ff",  # Z1 - bleu très clair
+            "#9ec5fe",  # Z2 - bleu clair
+            "#6ea8fe",  # Z3 - bleu moyen
+            "#3d8bfd",  # Z4 - bleu foncé
+            "#0d6efd",  # Z5 - bleu très foncé
+        ],
+    ),
+    sort=[
+        "Z1 (≤70% HRmax)",
+        "Z2 (70–80% HRmax)",
+        "Z3 (80–87% HRmax)",
+        "Z4 (87–93% HRmax)",
+        "Z5 (>93% HRmax)",
+    ],
+)
+
             order=alt.Order("zone_order:Q"),
             tooltip=["week_label", "zone_label", "total_time_min"],
         )
