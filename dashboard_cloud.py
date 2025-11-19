@@ -192,7 +192,7 @@ def activities_to_dataframe(
         if calories is None and sport in ("Run", "TrailRun", "NordicSki"):
             calories = athlete_weight_kg * distance_km
 
-          rows.append(
+        rows.append(
             {
                 "id": a.get("id"),
                 "name": a.get("name"),
@@ -204,7 +204,6 @@ def activities_to_dataframe(
                 "avg_hr": avg_hr,
             }
         )
-
 
     if not rows:
         return pd.DataFrame()
@@ -221,7 +220,6 @@ def activities_to_dataframe(
     )
 
     return df
-
 
 # =========================
 #  ANALYSE 7J / 30J & ACWR
