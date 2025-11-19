@@ -687,6 +687,15 @@ else:
     ],
 )
 
+    sort=[
+        "Z1 (≤70% HRmax)",
+        "Z2 (70–80% HRmax)",
+        "Z3 (80–87% HRmax)",
+        "Z4 (87–93% HRmax)",
+        "Z5 (>93% HRmax)",
+    ],
+)
+
             order=alt.Order("zone_order:Q"),
             tooltip=["week_label", "zone_label", "total_time_min"],
         )
