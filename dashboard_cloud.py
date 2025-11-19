@@ -639,6 +639,63 @@ else:
 
 
     st.altair_chart(chart_hr, use_container_width=True)
+    # ----- Focus sur la Z2 (endurance fondamentale) -----
+
+    st.subheader("⚙️ Part de temps en Z2 (endurance fondamentale)")
+
+    # Total temps course par semaine
+    weekly_total_time = (
+        weekly_hr_zones.groupby("week_label")["total_time_min"]
+        .sum()
+        .reset_index()
+        .rename(columns={"total_time_min": "total_time_all_zones"})
+    )
+
+    # Temps en Z2 uniquement
+    weekly_z2_time = (
+        weekly_hr_zones[weekly_hr_zones["hr_zone"] == "Z2"]
+        .groupby("week_label")["total_time_min"]
+        .sum()
+        .reset_index()
+        .rename(columns={"total_time_min": "total_time_z2"})
+    )
+
+    # Jointure + calcul du pourcentage
+    weekly_z2_share = weekly_total_time.merge(
+        weekly_z2_time, on="week_label", how="left"
+    )
+    weekly_z2_share["total_time_z2"] = weekly_z2_share["total_time_z2"].fillna(0.0)
+    weekly_z2_share["pct_z2"] = (
+        weekly_z2_share["total_time_z2"]
+        / weekly_z2_share["total_time_all_zones"]
+        * 100.0
+    )
+
+    chart_z2 = (
+        alt.Chart(weekly_z2_share)
+        .mark_bar()
+        .encode(
+            x=alt.X("week_label:N", title="Semaine"),
+            y=alt.Y(
+                "pct_z2:Q",
+                title="% du temps CAP en Z2",
+                scale=alt.Scale(domain=[0, 100]),
+            ),
+            tooltip=[
+                "week_label",
+                alt.Tooltip("total_time_z2:Q", title="Temps Z2 (min)", format=".1f"),
+                alt.Tooltip(
+                    "total_time_all_zones:Q",
+                    title="Temps CAP total (min)",
+                    format=".1f",
+                ),
+                alt.Tooltip("pct_z2:Q", title="% Z2", format=".1f"),
+            ],
+        )
+        .properties(height=250)
+    )
+
+    st.altair_chart(chart_z2, use_container_width=True)
 
 # ----- Répartition par sport -----
 
