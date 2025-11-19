@@ -624,12 +624,12 @@ else:
             color=alt.Color(
                 "zone_label:N",
                 title="Zone FC",
-                sort=[
-    "Z5 (>93% HRmax)",
-    "Z4 (87–93% HRmax)",
-    "Z3 (80–87% HRmax)",
-    "Z2 (70–80% HRmax)",
+  sort=[
     "Z1 (≤70% HRmax)",
+    "Z2 (70–80% HRmax)",
+    "Z3 (80–87% HRmax)",
+    "Z4 (87–93% HRmax)",
+    "Z5 (>93% HRmax)",
 ]
 
             ),
