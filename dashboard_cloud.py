@@ -901,5 +901,5 @@ components.html(
 )
 
 st.caption(
-    "Quand tu veux qu'on analyse, tu copies ce bloc (ou tu utilises le bouton ci-dessus) dans la discussion avec Miguel."
+    "Je peux copier ce rapport pour voir l'évolution "
 )
