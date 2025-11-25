@@ -16,7 +16,7 @@ icon_path = Path("apple-touch-icon.png")
 page_icon = "apple-touch-icon.png" if icon_path.exists() else None
 
 st.set_page_config(
-    page_title="Dashboard Strava – Miguel",
+    page_title="tableau de bord extraction Strava ",
     page_icon=page_icon,  # notre icône si trouvée
     layout="wide",
 )
@@ -490,6 +490,23 @@ try:
     athlete_weight = get_athlete_weight(tokens)
 
     st.sidebar.header("⚙️ Options")
+
+# bouton pour masquer / afficher les données sensibles
+mask_sensitive = st.sidebar.checkbox(
+    "Masquer poids & vitesses (*** )",
+    value=False,
+    help="Cache le poids, les allures moyennes, etc. pour partage d'écran."
+)
+
+days_range = st.sidebar.slider(
+    "Fenêtre d'analyse principale",
+    min_value=30,
+    max_value=180,
+    value=90,
+    step=30,
+    help="Nombre de jours utilisés pour les graphiques hebdos.",
+)
+
     days_range = st.sidebar.slider(
         "Fenêtre d'analyse principale",
         min_value=30,
@@ -515,7 +532,12 @@ last_date = df["start_date"].max()
 st.markdown(
     f"**Dernière activité Strava détectée :** {last_date.strftime('%Y-%m-%d %H:%M')}"
 )
-st.markdown(f"**Poids utilisé pour les calculs CAP :** {athlete_weight:.1f} kg")
+
+if mask_sensitive:
+    st.markdown("**Poids utilisé pour les calculs CAP :** ***")
+else:
+    st.markdown(f"**Poids utilisé pour les calculs CAP :** {athlete_weight:.1f} kg")
+
 
 # ----- Résumés 7j / 30j + ACWR -----
 
@@ -540,9 +562,10 @@ with col1:
         f"{summary_7['run_distance']:.2f} km ({summary_7['run_sessions']} séances)",
     )
     st.metric(
-        "Allure CAP moyenne",
-        _format_pace(summary_7["run_pace"]),
+    "Allure CAP moyenne",
+    "***" if mask_sensitive else _format_pace(summary_7["run_pace"]),
     )
+
 
 with col2:
     st.subheader("📆 30 derniers jours")
@@ -557,11 +580,11 @@ with col2:
     st.metric(
         "CAP – distance",
         f"{summary_30['run_distance']:.2f} km ({summary_30['run_sessions']} séances)",
-    )
     st.metric(
-        "Allure CAP moyenne",
-        _format_pace(summary_30["run_pace"]),
+    "Allure CAP moyenne",
+    "***" if mask_sensitive else _format_pace(summary_30["run_pace"]),
     )
+
 
 with col3:
     st.subheader("📈 Charge CAP 7j")
