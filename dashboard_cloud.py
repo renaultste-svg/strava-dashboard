@@ -491,13 +491,28 @@ try:
 
     st.sidebar.header("⚙️ Options")
 
-# bouton pour masquer / afficher les données sensibles
-try:
-    tokens = get_valid_tokens()
-    access_token = tokens["access_token"]
-    athlete_weight = get_athlete_weight(tokens)
+    # bouton pour masquer / afficher les données sensibles
+    mask_sensitive = st.sidebar.checkbox(
+        "Masquer poids & vitesses (*** )",
+        value=False,
+        help="Cache le poids, les allures moyennes, etc. pour partage d'écran."
+    )
 
-    st.sidebar.header("⚙️ Options")
+    days_range = st.sidebar.slider(
+        "Fenêtre d'analyse principale",
+        min_value=30,
+        max_value=180,
+        value=90,
+        step=30,
+        help="Nombre de jours utilisés pour les graphiques hebdos.",
+    )
+
+    activities = fetch_recent_activities(access_token, days=days_range)
+    df = activities_to_dataframe(activities, athlete_weight)
+
+except Exception as e:
+    st.error(f"Erreur lors de la connexion à Strava : {e}")
+    st.stop()
 
     # bouton pour masquer / afficher les données sensibles
     mask_sensitive = st.sidebar.checkbox(
@@ -580,10 +595,12 @@ with col2:
     st.metric(
         "CAP – distance",
         f"{summary_30['run_distance']:.2f} km ({summary_30['run_sessions']} séances)",
-    st.metric(
-    "Allure CAP moyenne",
-    "***" if mask_sensitive else _format_pace(summary_30["run_pace"]),
     )
+    st.metric(
+        "Allure CAP moyenne",
+        "***" if mask_sensitive else _format_pace(summary_30["run_pace"]),
+    )
+
 
 
 with col3:
