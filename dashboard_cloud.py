@@ -855,7 +855,7 @@ st.dataframe(
 # ----- Bloc rapport à copier-coller -----
 
 st.markdown("---")
-st.subheader("📝 Rapport 'Miguel-ready' à copier-coller")
+st.subheader("📝 Rapport 30 et 7 jours glissants CAP")
 
 report_text = build_text_report(df, summary_7, summary_30, acwr)
 st.text_area(
