@@ -240,6 +240,17 @@ def _format_pace(avg_min_per_km: float | None) -> str:
         secs = 0
     return f"{mins}:{secs:02d}/km"
 
+def format_hours_hm(hours: float) -> str:
+    """Convertit un nombre d'heures décimal en format HhMM."""
+    if hours is None:
+        return "—"
+    h = int(hours)
+    m = int(round((hours - h) * 60))
+    if m == 60:
+        h += 1
+        m = 0
+    return f"{h}h{m:02d}"
+
 
 def summarize_period(df: pd.DataFrame, days: int, last_date: datetime) -> dict:
     """Résumé pour une période (tous sports + CAP uniquement)."""
@@ -569,9 +580,10 @@ with col1:
         f"{int(round(summary_7['total_kcal']))} kcal",
     )
     st.metric(
-        "Temps total",
-        f"{summary_7['total_hours']:.1f} h",
+    "Temps total",
+    format_hours_hm(summary_7["total_hours"]),
     )
+
     st.metric(
         "CAP – distance",
         f"{summary_7['run_distance']:.2f} km ({summary_7['run_sessions']} séances)",
@@ -589,9 +601,10 @@ with col2:
         f"{int(round(summary_30['total_kcal']))} kcal",
     )
     st.metric(
-        "Temps total",
-        f"{summary_30['total_hours']:.1f} h",
+    "Temps total",
+    format_hours_hm(summary_30["total_hours"]),
     )
+
     st.metric(
         "CAP – distance",
         f"{summary_30['run_distance']:.2f} km ({summary_30['run_sessions']} séances)",
