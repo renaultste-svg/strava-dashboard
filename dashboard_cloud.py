@@ -492,20 +492,19 @@ try:
     st.sidebar.header("⚙️ Options")
 
 # bouton pour masquer / afficher les données sensibles
-mask_sensitive = st.sidebar.checkbox(
-    "Masquer poids & vitesses (*** )",
-    value=False,
-    help="Cache le poids, les allures moyennes, etc. pour partage d'écran."
-)
+try:
+    tokens = get_valid_tokens()
+    access_token = tokens["access_token"]
+    athlete_weight = get_athlete_weight(tokens)
 
-days_range = st.sidebar.slider(
-    "Fenêtre d'analyse principale",
-    min_value=30,
-    max_value=180,
-    value=90,
-    step=30,
-    help="Nombre de jours utilisés pour les graphiques hebdos.",
-)
+    st.sidebar.header("⚙️ Options")
+
+    # bouton pour masquer / afficher les données sensibles
+    mask_sensitive = st.sidebar.checkbox(
+        "Masquer poids & vitesses (*** )",
+        value=False,
+        help="Cache le poids, les allures moyennes, etc. pour partage d'écran."
+    )
 
     days_range = st.sidebar.slider(
         "Fenêtre d'analyse principale",
@@ -522,6 +521,7 @@ days_range = st.sidebar.slider(
 except Exception as e:
     st.error(f"Erreur lors de la connexion à Strava : {e}")
     st.stop()
+
 
 if df.empty:
     st.warning("Aucune activité trouvée sur la période choisie.")
