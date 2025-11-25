@@ -473,7 +473,7 @@ Miguel-ready summary
 #  DASHBOARD STREAMLIT
 # =========================
 
-st.title("📊 Dashboard – analyse d'activités sportives ")
+st.title("📊 tableau de bord – analyse d'activités sportives ")
 
 st.markdown(
     """
