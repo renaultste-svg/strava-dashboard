@@ -585,9 +585,10 @@ with col1:
     )
 
     st.metric(
-        "CAP – distance",
-        f"{summary_7['run_distance']:.2f} km ({summary_7['run_sessions']} séances)",
+    "CAP – distance",
+    f"{summary_7['run_distance']:.2f} km ({'***' if mask_sensitive else summary_7['run_sessions']} séances)",
     )
+
     st.metric(
     "Allure CAP moyenne",
     "***" if mask_sensitive else _format_pace(summary_7["run_pace"]),
@@ -606,9 +607,10 @@ with col2:
     )
 
     st.metric(
-        "CAP – distance",
-        f"{summary_30['run_distance']:.2f} km ({summary_30['run_sessions']} séances)",
+    "CAP – distance",
+    f"{summary_30['run_distance']:.2f} km ({'***' if mask_sensitive else summary_30['run_sessions']} séances)",
     )
+
     st.metric(
         "Allure CAP moyenne",
         "***" if mask_sensitive else _format_pace(summary_30["run_pace"]),
